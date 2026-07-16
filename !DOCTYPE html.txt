@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eficiencia de respuesta — Ejecutivos CDN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #12161d;
+    --surface: #1b212b;
+    --surface-2: #212836;
+    --line: rgba(241,239,232,0.08);
+    --line-strong: rgba(241,239,232,0.16);
+    --ink: #f1efe8;
+    --ink-dim: #9aa2b0;
+    --ink-mute: #6b7280;
+    --green: #2fbf8f;
+    --green-ink: #b9f3de;
+    --amber: #f5a623;
+    --amber-ink: #ffdca0;
+    --red: #e0554a;
+    --red-ink: #ffc2bc;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3, .display{
+    font-family:'Barlow Condensed', sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.02em;
+    font-weight:600;
+  }
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  .wrap{max-width:1100px; margin:0 auto; padding:0 32px;}
+
+  /* ---------- NAV ---------- */
+  nav{
+    position:sticky; top:0; z-index:50;
+    background:rgba(18,22,29,0.85);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+  }
+  nav .wrap{display:flex; align-items:center; justify-content:space-between; height:64px;}
+  .brand{display:flex; align-items:center; gap:10px; font-family:'Barlow Condensed'; font-size:20px; letter-spacing:0.04em;}
+  .brand .dot{width:9px; height:9px; border-radius:50%; background:var(--amber);}
+  nav ul{list-style:none; display:flex; gap:28px;}
+  nav a{color:var(--ink-dim); text-decoration:none; font-size:14px; font-weight:500; transition:color .15s;}
+  nav a:hover{color:var(--ink);}
+
+  /* ---------- HERO ---------- */
+  header.hero{
+    padding:96px 0 72px;
+    border-bottom:1px solid var(--line);
+    position:relative;
+    overflow:hidden;
+  }
+  header.hero::before{
+    content:"";
+    position:absolute; top:0; right:-10%; width:60%; height:100%;
+    background: repeating-linear-gradient(90deg, transparent 0 38px, var(--line) 38px 39px);
+    -webkit-mask-image: linear-gradient(to left, black, transparent);
+            mask-image: linear-gradient(to left, black, transparent);
+    pointer-events:none;
+  }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12.5px; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--amber); font-weight:600; margin-bottom:22px;
+  }
+  .eyebrow::before{content:"●"; font-size:8px;}
+  h1.hero-title{
+    font-size:clamp(40px, 6.4vw, 76px);
+    line-height:0.98;
+    max-width:900px;
+    margin-bottom:22px;
+  }
+  h1.hero-title .accent{color:var(--amber);}
+  .hero-sub{
+    font-size:17px; color:var(--ink-dim); max-width:560px; margin-bottom:44px;
+  }
+  .hero-stat-row{
+    display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:1px;
+    background:var(--line); border:1px solid var(--line);
+    max-width:760px;
+  }
+  .hero-stat{background:var(--surface); padding:24px 26px;}
+  .hero-stat .num{font-family:'IBM Plex Mono'; font-size:34px; font-weight:600; line-height:1;}
+  .hero-stat .num.amber{color:var(--amber);}
+  .hero-stat .num.green{color:var(--green);}
+  .hero-stat .lbl{font-size:12.5px; color:var(--ink-dim); margin-top:8px; text-transform:uppercase; letter-spacing:0.05em;}
+
+  /* ---------- SECTION SHELL ---------- */
+  section{padding:72px 0; border-bottom:1px solid var(--line);}
+  .section-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:36px; gap:24px; flex-wrap:wrap;}
+  .section-head h2{font-size:32px;}
+  .section-head p{color:var(--ink-dim); font-size:14.5px; max-width:420px;}
+  .idx{font-family:'IBM Plex Mono'; color:var(--ink-mute); font-size:13px;}
+
+  /* ---------- GAUGES ---------- */
+  .gauge-grid{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:1px; background:var(--line); border:1px solid var(--line);}
+  .gauge-card{background:var(--surface); padding:28px 24px 24px;}
+  .gauge-card .exec-name{font-family:'Barlow Condensed'; font-size:22px; margin-bottom:2px;}
+  .gauge-card .exec-role{font-size:12.5px; color:var(--ink-mute); margin-bottom:18px;}
+  .gauge-svg{display:block; width:100%; max-width:220px; margin:0 auto;}
+  .gauge-readout{text-align:center; margin-top:6px;}
+  .gauge-readout .val{font-family:'IBM Plex Mono'; font-size:28px; font-weight:600;}
+  .gauge-readout .val small{font-size:14px; color:var(--ink-dim); font-weight:500;}
+  .gauge-readout .tag{
+    display:inline-block; margin-top:10px; font-size:11.5px; letter-spacing:0.06em;
+    text-transform:uppercase; padding:4px 10px; border-radius:3px; font-weight:600;
+  }
+  .tag.good{background:rgba(47,191,143,0.15); color:var(--green-ink);}
+  .tag.warn{background:rgba(245,166,35,0.15); color:var(--amber-ink);}
+  .tag.bad{background:rgba(224,85,74,0.15); color:var(--red-ink);}
+  .mini-stats{display:flex; justify-content:space-between; margin-top:20px; padding-top:16px; border-top:1px solid var(--line);}
+  .mini-stats div{text-align:center; flex:1;}
+  .mini-stats .n{font-family:'IBM Plex Mono'; font-size:16px; font-weight:600;}
+  .mini-stats .l{font-size:11px; color:var(--ink-mute); text-transform:uppercase; letter-spacing:0.04em; margin-top:2px;}
+
+  /* ---------- TABLE ---------- */
+  table{width:100%; border-collapse:collapse; font-size:14px;}
+  thead th{
+    text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:0.06em;
+    color:var(--ink-mute); font-weight:600; padding:0 14px 12px; border-bottom:1px solid var(--line-strong);
+  }
+  tbody td{padding:14px; border-bottom:1px solid var(--line); vertical-align:middle;}
+  tbody tr:hover{background:var(--surface-2);}
+  .client{font-weight:500;}
+  .exec-tag{color:var(--ink-dim); font-size:13px;}
+  .status-dot{display:inline-flex; align-items:center; gap:8px; font-size:13px;}
+  .status-dot::before{content:""; width:8px; height:8px; border-radius:50%; background:var(--amber); flex-shrink:0;}
+  .status-dot.stale::before{background:var(--red);}
+  td.mono-cell{font-family:'IBM Plex Mono'; font-size:12.5px; color:var(--ink-dim);}
+
+  /* ---------- METHOD ---------- */
+  .method-grid{display:grid; grid-template-columns:1fr 1fr; gap:48px;}
+  .method-grid h3{font-size:18px; margin-bottom:10px; letter-spacing:0.01em;}
+  .method-grid p{color:var(--ink-dim); font-size:14.5px;}
+  .method-grid ul{margin-top:10px; padding-left:18px; color:var(--ink-dim); font-size:14.5px;}
+  .method-grid li{margin-bottom:6px;}
+
+  footer{padding:36px 0 48px;}
+  footer .wrap{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;}
+  footer p{font-size:13px; color:var(--ink-mute);}
+
+  @media (max-width:760px){
+    .gauge-grid{grid-template-columns:1fr;}
+    .hero-stat-row{grid-template-columns:1fr;}
+    .method-grid{grid-template-columns:1fr;}
+    nav ul{display:none;}
+    table{font-size:12.5px;}
+    thead th, tbody td{padding:10px 8px;}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="brand"><span class="dot"></span>CDN · Panel de citas</div>
+    <ul>
+      <li><a href="#resumen">Resumen</a></li>
+      <li><a href="#ejecutivos">Ejecutivos</a></li>
+      <li><a href="#pendientes">Pendientes</a></li>
+      <li><a href="#metodologia">Metodología</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">1 – 16 julio 2026 · Citas y llamadas asignadas</div>
+    <h1 class="hero-title">Del clic de asignación<br>al primer <span class="accent">contacto real.</span></h1>
+    <p class="hero-sub">Así respondió el equipo a las citas y llamadas asignadas en lo que va del mes: cuántas se atendieron y cuánto tardó cada ejecutivo en marcarlas como contactadas.</p>
+    <div class="hero-stat-row">
+      <div class="hero-stat">
+        <div class="num">13</div>
+        <div class="lbl">Actividades asignadas</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num amber">46%</div>
+        <div class="lbl">Contactadas a la fecha</div>
+      </div>
+      <div class="hero-stat">
+        <div class="num">39.1<small style="font-size:16px;color:var(--ink-dim);"> h</small></div>
+        <div class="lbl">Respuesta promedio</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="ejecutivos">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <h2>Velocidad de respuesta por ejecutivo</h2>
+        <p>Horas transcurridas entre la asignación de la cita y el momento en que se marcó "cliente contactado". Verde = rápido, ámbar = moderado, rojo = lento.</p>
+      </div>
+      <span class="idx">01 / 03</span>
+    </div>
+
+    <div class="gauge-grid">
+
+      <!-- Adrian Eguino -->
+      <div class="gauge-card">
+        <div class="exec-name">Adrian Eguino</div>
+        <div class="exec-role">Tractos · Medianos &amp; SS</div>
+        <svg class="gauge-svg" viewBox="0 0 200 118">
+          <path d="M 20,100 A 80,80 0 0 1 62.1,29.6" fill="none" stroke="#2fbf8f" stroke-width="14" stroke-linecap="round"/>
+          <path d="M 62.1,29.6 A 80,80 0 0 1 144.1,33.2" fill="none" stroke="#f5a623" stroke-width="14" stroke-linecap="round"/>
+          <path d="M 144.1,33.2 A 80,80 0 0 1 180,100" fill="none" stroke="#e0554a" stroke-width="14" stroke-linecap="round"/>
+          <circle cx="100" cy="100" r="6" fill="#f1efe8"/>
+          <line x1="100" y1="100" x2="58.1" y2="46.5" stroke="#f1efe8" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <div class="gauge-readout">
+          <div class="val">20.2<small> h</small></div>
+          <span class="tag good">Respuesta ágil</span>
+        </div>
+        <div class="mini-stats">
+          <div><div class="n">3</div><div class="l">Asignadas</div></div>
+          <div><div class="n">2</div><div class="l">Contactadas</div></div>
+          <div><div class="n">67%</div><div class="l">Tasa</div></div>
+        </div>
+      </div>
+
+      <!-- Daniel Lopez -->
+      <div class="gauge-card">
+        <div class="exec-name">Daniel Lopez</div>
+        <div class="exec-role">Tractos</div>
+        <svg class="gauge-svg" viewBox="0 0 200 118">
+          <path d="M 20,100 A 80,80 0 0 1 62.1,29.6" fill="none" stroke="#2fbf8f" stroke-width="14" stroke-linecap="round"/>
+          <path d="M 62.1,29.6 A 80,80 0 0 1 144.1,33.2" fill="none" stroke="#f5a623" stroke-width="14" stroke-linecap="round"/>
+          <path d="M 144.1,33.2 A 80,80 0 0 1 180,100" fill="none" stroke="#e0554a" stroke-width="14" stroke-linecap="round"/>
+          <circle cx="100" cy="100" r="6" fill="#f1efe8"/>
+          <line x1="100" y1="100" x2="159.4" y2="67.0" stroke="#f1efe8" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <div class="gauge-readout">
+          <div class="val">58.7<small> h</small></div>
+          <span class="tag bad">Respuesta lenta</span>
+        </div>
+        <div class="mini-stats">
+          <div><div class="n">6</div><div class="l">Asignadas</div></div>
+          <div><div class="n">3</div><div class="l">Contactadas</div></div>
+          <div><div class="n">50%</div><div class="l">Tasa</div></div>
+        </div>
+      </div>
+
+      <!-- Gabriela Sanchez -->
+      <div class="gauge-card">
+        <div class="exec-name">Gabriela Sánchez</div>
+        <div class="exec-role">Tractos</div>
+        <svg class="gauge-svg" viewBox="0 0 200 118">
+          <path d="M 20,100 A 80,80 0 0 1 62.1,29.6" fill="none" stroke="#2fbf8f" stroke-width="14" stroke-linecap="round"/>
+          <path d="M 62.1,29.6 A 80,80 0 0 1 144.1,33.2" fill="none" stroke="#f5a623" stroke-width="14" stroke-linecap="round"/>
+          <path d="M 144.1,33.2 A 80,80 0 0 1 180,100" fill="none" stroke="#e0554a" stroke-width="14" stroke-linecap="round"/>
+          <circle cx="100" cy="100" r="6" fill="#f1efe8"/>
+          <line x1="100" y1="100" x2="53.7" y2="50.2" stroke="#f1efe8" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <div class="gauge-readout">
+          <div class="val">18.3<small> h</small></div>
+          <span class="tag good">Respuesta ágil</span>
+        </div>
+        <div class="mini-stats">
+          <div><div class="n">4</div><div class="l">Asignadas</div></div>
+          <div><div class="n">1</div><div class="l">Contactadas</div></div>
+          <div><div class="n">25%</div><div class="l">Tasa</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section id="pendientes">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <h2>Actividades sin marcar como contactadas</h2>
+        <p>7 de las 13 actividades no tienen la casilla "cliente contactado" activada. Algunas ya pasaron su hora programada.</p>
+      </div>
+      <span class="idx">02 / 03</span>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Ejecutivo</th>
+          <th>Tipo</th>
+          <th>Creado</th>
+          <th>Hora de cita</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="client">Pisos y Recubrimientos</td>
+          <td class="exec-tag">Daniel Lopez</td>
+          <td class="mono-cell">Llamada</td>
+          <td class="mono-cell">07 jul, 15:11</td>
+          <td class="mono-cell">15 jul, 14:59</td>
+          <td><span class="status-dot stale">La más antigua sin cerrar</span></td>
+        </tr>
+        <tr>
+          <td class="client">Grupo 2A Constructora Arce</td>
+          <td class="exec-tag">Gabriela Sánchez</td>
+          <td class="mono-cell">Llamada</td>
+          <td class="mono-cell">14 jul, 17:01</td>
+          <td class="mono-cell">14 jul, 17:02</td>
+          <td><span class="status-dot stale">Marcada "Perdida" sin contacto</span></td>
+        </tr>
+        <tr>
+          <td class="client">Estructuras Martínez</td>
+          <td class="exec-tag">Adrian Eguino</td>
+          <td class="mono-cell">Llamada</td>
+          <td class="mono-cell">13 jul, 09:31</td>
+          <td class="mono-cell">13 jul, 12:03</td>
+          <td><span class="status-dot">Primer intento del día</span></td>
+        </tr>
+        <tr>
+          <td class="client">Transportes Refrigerados Monroy</td>
+          <td class="exec-tag">Gabriela Sánchez</td>
+          <td class="mono-cell">Llamada</td>
+          <td class="mono-cell">13 jul, 11:26</td>
+          <td class="mono-cell">13 jul, 11:02</td>
+          <td><span class="status-dot">Sin marcar</span></td>
+        </tr>
+        <tr>
+          <td class="client">JC Interlog</td>
+          <td class="exec-tag">Daniel Lopez</td>
+          <td class="mono-cell">Llamada</td>
+          <td class="mono-cell">13 jul, 12:23</td>
+          <td class="mono-cell">13 jul, 12:01</td>
+          <td><span class="status-dot">Posible falta de captura</span></td>
+        </tr>
+        <tr>
+          <td class="client">Alejandro Huante</td>
+          <td class="exec-tag">Daniel Lopez</td>
+          <td class="mono-cell">Llamada</td>
+          <td class="mono-cell">14 jul, 18:45</td>
+          <td class="mono-cell">14 jul, 18:00</td>
+          <td><span class="status-dot">Posible falta de captura</span></td>
+        </tr>
+        <tr>
+          <td class="client">Domínguez Trucking</td>
+          <td class="exec-tag">Gabriela Sánchez</td>
+          <td class="mono-cell">Cita</td>
+          <td class="mono-cell">15 jul, 17:46</td>
+          <td class="mono-cell">16 jul, 12:15</td>
+          <td><span class="status-dot">Cita reciente, aún en curso</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="metodologia" style="border-bottom:none;">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <h2>Cómo se calculó</h2>
+      </div>
+      <span class="idx">03 / 03</span>
+    </div>
+    <div class="method-grid">
+      <div>
+        <h3>Tiempo de respuesta</h3>
+        <p>Se mide como las horas entre <strong style="font-weight:500;color:var(--ink);">Creado</strong> (cuándo se asignó la cita u oportunidad) y <strong style="font-weight:500;color:var(--ink);">Modificado</strong> (última actualización del registro), tomado solo sobre las actividades donde se marcó "cliente contactado".</p>
+      </div>
+      <div>
+        <h3>Limitaciones a considerar</h3>
+        <ul>
+          <li>Muestra pequeña: 13 actividades en 16 días.</li>
+          <li>"Modificado" no siempre equivale a un contacto real; puede reflejar cualquier edición del registro.</li>
+          <li>Las actividades sin la casilla marcada no necesariamente están sin atender — puede ser un tema de captura.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Reporte generado a partir de "Reporte semanal de actividades CDN" · Del 1 al 16 de julio de 2026</p>
+    <p class="mono" style="font-size:12px;">CDN · Panel interno</p>
+  </div>
+</footer>
+
+</body>
+</html>
